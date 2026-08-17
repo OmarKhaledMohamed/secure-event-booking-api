@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import userRoutes from "./routes/user.routes.js";
+import eventRoutes from "./routes/event.routes.js";
 dotenv.config();
 
 import express from "express";
@@ -14,6 +15,7 @@ const app = express();
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/events", eventRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

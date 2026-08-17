@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import { generateToken } from "../utils/generateToken.js";
 
-export const registerUser = async ({ name, email, password }) => {
+export const registerUser = async ({ name, email, password, role }) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
@@ -17,6 +17,7 @@ export const registerUser = async ({ name, email, password }) => {
     name,
     email,
     password: hashedPassword,
+    role,
   });
 
   return {
