@@ -74,5 +74,4 @@ router.post("/register", validate(registerSchema), register);
  *         description: Invalid email or password
  */
 router.post("/login", validate(loginSchema), login);
-router.post("/login", validate(loginSchema), login);
 export default router;
