@@ -1,5 +1,9 @@
 import express from "express";
-import { register, login } from "../controllers/authController.js";
+import {
+  register,
+  login,
+  refreshToken,
+} from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema } from "../validators/auth.validator.js";
 
@@ -74,4 +78,31 @@ router.post("/register", validate(registerSchema), register);
  *         description: Invalid email or password
  */
 router.post("/login", validate(loginSchema), login);
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: YOUR_REFRESH_TOKEN
+ *     responses:
+ *       200:
+ *         description: Access token refreshed successfully
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post("/refresh", refreshToken);
+
 export default router;

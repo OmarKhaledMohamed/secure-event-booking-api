@@ -1,5 +1,8 @@
-import { registerUser, loginUser } from "../services/authService.js";
-
+import {
+  registerUser,
+  loginUser,
+  refreshAccessToken,
+} from "../services/authService.js";
 export const register = async (req, res, next) => {
   try {
     const user = await registerUser(req.body);
@@ -21,6 +24,22 @@ export const login = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Login successful",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const refreshToken = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    const result = await refreshAccessToken(refreshToken);
+
+    res.status(200).json({
+      success: true,
+      message: "Access token refreshed successfully",
       data: result,
     });
   } catch (error) {

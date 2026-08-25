@@ -1,6 +1,10 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
-import { generateToken } from "../utils/generateToken.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../utils/generateToken.js";
+import jwt from "jsonwebtoken";
 
 export const registerUser = async ({ name, email, password }) => {
   const existingUser = await User.findOne({ email });
@@ -43,14 +47,54 @@ export const loginUser = async ({ email, password }) => {
     throw error;
   }
 
-  const token = generateToken(user._id);
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
 
   return {
-    token,
+    accessToken,
+    refreshToken,
     user: {
       id: user._id,
       name: user.name,
       email: user.email,
     },
   };
+};
+
+export const refreshAccessToken = async (refreshToken) => {
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+    if (decoded.type !== "refresh") {
+      const error = new Error("Invalid refresh token");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      const error = new Error("User no longer exists");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const accessToken = generateAccessToken(user._id);
+
+    return {
+      accessToken,
+    };
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      error.statusCode = 401;
+      error.message = "Refresh token expired";
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      error.statusCode = 401;
+      error.message = "Invalid refresh token";
+    }
+
+    throw error;
+  }
 };
