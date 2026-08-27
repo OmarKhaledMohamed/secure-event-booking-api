@@ -25,6 +25,22 @@ const router = express.Router();
  *   get:
  *     summary: Get all events
  *     tags: [Events]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of events per page
  *     responses:
  *       200:
  *         description: Events retrieved successfully

@@ -8,58 +8,58 @@ const createError = (message, statusCode) => {
 };
 
 export const createBooking = async ({ userId, eventId, seats }) => {
-  /*
-   * Atomically reserve seats.
-   *
-   * The update will only happen if:
-   * availableSeats >= seats
-   */
-  const event = await Event.findOneAndUpdate(
-    {
-      _id: eventId,
-      availableSeats: { $gte: seats },
-    },
-    {
-      $inc: {
-        availableSeats: -seats,
-      },
-    },
-    {
-      new: true,
-    },
-  );
-
-  if (!event) {
-    const existingEvent = await Event.findById(eventId);
-
-    if (!existingEvent) {
-      throw createError("Event not found", 404);
-    }
-
-    throw createError("Not enough seats available", 400);
-  }
+  console.time("createBooking");
 
   try {
-    const booking = await Booking.create({
-      user: userId,
-      event: eventId,
-      seats,
-      status: "confirmed",
-    });
-
-    return booking;
-  } catch (error) {
     /*
-     * Booking creation failed after seats were reserved.
-     * Restore the seats.
+     * Atomically reserve seats.
+     *
+     * The update will only happen if:
+     * availableSeats >= seats
      */
-    await Event.findByIdAndUpdate(eventId, {
-      $inc: {
-        availableSeats: seats,
+    const event = await Event.findOneAndUpdate(
+      {
+        _id: eventId,
+        availableSeats: { $gte: seats },
       },
-    });
+      {
+        $inc: {
+          availableSeats: -seats,
+        },
+      },
+      {
+        returnDocument: "after",
+      },
+    );
 
-    throw error;
+    if (!event) {
+      throw createError("Event not found or not enough seats available", 400);
+    }
+
+    try {
+      const booking = await Booking.create({
+        user: userId,
+        event: eventId,
+        seats,
+        status: "confirmed",
+      });
+
+      return booking;
+    } catch (error) {
+      /*
+       * Booking creation failed after seats were reserved.
+       * Restore the seats.
+       */
+      await Event.findByIdAndUpdate(eventId, {
+        $inc: {
+          availableSeats: seats,
+        },
+      });
+
+      throw error;
+    }
+  } finally {
+    console.timeEnd("createBooking");
   }
 };
 
@@ -67,15 +67,19 @@ export const getUserBookings = async (userId) => {
   return await Booking.find({
     user: userId,
   })
-    .populate("event")
+    .select("event seats status createdAt updatedAt")
+    .populate("event", "title date location")
     .sort({ createdAt: -1 });
 };
 
 export const getBookingById = async ({ bookingId, userId, role }) => {
   const booking = await Booking.findById(bookingId)
-    .populate("event")
+    .select("user event seats status createdAt updatedAt")
+    .populate(
+      "event",
+      "title description date location totalSeats availableSeats",
+    )
     .populate("user", "name email role");
-
   if (!booking) {
     throw createError("Booking not found", 404);
   }
@@ -99,7 +103,6 @@ export const updateBooking = async ({ bookingId, userId, role, seats }) => {
   }
 
   const isOwner = booking.user.toString() === userId.toString();
-
   const isAdmin = role === "admin";
 
   if (!isOwner && !isAdmin) {
@@ -128,18 +131,12 @@ export const updateBooking = async ({ bookingId, userId, role, seats }) => {
         },
       },
       {
-        new: true,
+        returnDocument: "after",
       },
     );
 
     if (!event) {
-      const existingEvent = await Event.findById(booking.event);
-
-      if (!existingEvent) {
-        throw createError("Event not found", 404);
-      }
-
-      throw createError("Not enough seats available", 400);
+      throw createError("Event not found or not enough seats available", 400);
     }
 
     try {
@@ -168,7 +165,7 @@ export const updateBooking = async ({ bookingId, userId, role, seats }) => {
         },
       },
       {
-        new: true,
+        returnDocument: "after",
       },
     );
 
@@ -207,7 +204,6 @@ export const cancelBooking = async ({ bookingId, userId, role }) => {
   }
 
   const isOwner = booking.user.toString() === userId.toString();
-
   const isAdmin = role === "admin";
 
   if (!isOwner && !isAdmin) {
@@ -226,7 +222,7 @@ export const cancelBooking = async ({ bookingId, userId, role }) => {
       },
     },
     {
-      new: true,
+      returnDocument: "after",
     },
   );
 

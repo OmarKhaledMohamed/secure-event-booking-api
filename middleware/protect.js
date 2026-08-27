@@ -15,6 +15,12 @@ export const protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    if (decoded.type !== "access") {
+      const error = new Error("Invalid access token");
+      error.statusCode = 401;
+      throw error;
+    }
+
     const user = await User.findById(decoded.userId);
 
     if (!user) {

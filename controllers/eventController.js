@@ -22,11 +22,15 @@ export const createEvent = async (req, res, next) => {
 
 export const getEvents = async (req, res, next) => {
   try {
-    const events = await getAllEvents();
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
+
+    const result = await getAllEvents({ page, limit });
 
     res.status(200).json({
       success: true,
-      data: events,
+      data: result.events,
+      pagination: result.pagination,
     });
   } catch (error) {
     next(error);
